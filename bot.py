@@ -242,26 +242,24 @@ async def go_menu(message: types.Message):
 # -------------------------------
 from aiohttp import web
 
+async def handle(request):
+    update = await request.json()
+    await dp.feed_update(bot, update)
+    return web.Response()
+
 async def on_startup(app):
-    await bot.set_webhook(WEBHOOK_URL)
-    print("✅ Webhook установлен:", WEBHOOK_URL)
+    webhook_url = os.getenv("WEBHOOK_URL")
+    await bot.set_webhook(webhook_url)
 
 async def on_shutdown(app):
     await bot.delete_webhook()
-    print("❌ Webhook удалён")
 
-async def handle_request(request):
-    update = await request.json()
-    await dp.feed_raw_update(bot, update)
-    return web.Response()
-
-def main():
-    app = web.Application()
-    app.router.add_post("/", handle_request)
-    app.on_startup.append(on_startup)
-    app.on_shutdown.append(on_shutdown)
-    web.run_app(app, host=WEBAPP_HOST, port=WEBAPP_PORT)
+app = web.Application()
+app.router.add_post("/", handle)
+app.on_startup.append(on_startup)
+app.on_shutdown.append(on_shutdown)
 
 if __name__ == "__main__":
-    main()
+    web.run_app(app, host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+
 
