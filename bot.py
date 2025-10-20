@@ -1,4 +1,5 @@
 import os
+import asyncio
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
@@ -9,6 +10,9 @@ load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID"))
+WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # 🔹 Добавим это в .env
+WEBAPP_HOST = "0.0.0.0"
+WEBAPP_PORT = int(os.getenv("PORT", 8080))
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
@@ -236,12 +240,28 @@ async def go_menu(message: types.Message):
 # -------------------------------
 # Запуск
 # -------------------------------
-import asyncio
+from aiohttp import web
 
-async def main():
-    await bot.delete_webhook(drop_pending_updates=True)
-    await dp.start_polling(bot)
+async def on_startup(app):
+    await bot.set_webhook(WEBHOOK_URL)
+    print("✅ Webhook установлен:", WEBHOOK_URL)
+
+async def on_shutdown(app):
+    await bot.delete_webhook()
+    print("❌ Webhook удалён")
+
+async def handle_request(request):
+    update = await request.json()
+    await dp.feed_raw_update(bot, update)
+    return web.Response()
+
+def main():
+    app = web.Application()
+    app.router.add_post("/", handle_request)
+    app.on_startup.append(on_startup)
+    app.on_shutdown.append(on_shutdown)
+    web.run_app(app, host=WEBAPP_HOST, port=WEBAPP_PORT)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
 
