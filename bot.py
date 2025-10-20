@@ -236,5 +236,12 @@ async def go_menu(message: types.Message):
 # -------------------------------
 # Запуск
 # -------------------------------
+import asyncio
+
+async def main():
+    await bot.delete_webhook(drop_pending_updates=True)
+    await dp.start_polling(bot)
+
 if __name__ == "__main__":
-    dp.run_polling(bot)
+    asyncio.run(main())
+
